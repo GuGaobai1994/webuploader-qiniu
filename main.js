@@ -4,15 +4,14 @@
 
 /*todo:
  1. query 获取上传host
+ 2. 组件化
  */
 
 $(function() {
     var host = "http://upload.qiniu.com";
-    var ctx = new Array();
     var tokenUrl = "http://localhost:8083/uptoken" ;
-    var token;
     var domain = "http://orqjqg7zj.bkt.clouddn.com/";
-
+    var hash = true;
 
     var uploader = WebUploader.create({
         auto: true,
@@ -39,6 +38,9 @@ $(function() {
         fileSingleSizeLimit: 10000 * 1024 * 1024,
         duplicate: true
     });
+
+    var ctx = new Array();
+    var token;
 
     uploader.on("fileQueued", function (file) {
 
@@ -71,20 +73,26 @@ $(function() {
                 console.log(res);
                 token = res.uptoken;
                 console.log(token);
-                uploader.options.formData = {
-                    token : token
+                if(hash) {
+                    uploader.options.formData = {
+                        token : token,
+                    }
+                } else {
+                    uploader.options.formData = {
+                        token : token,
+                        key: file.name
+                    }
                 }
+
             }
         });
     });
 
     uploader.on("uploadBeforeSend", function (block, data, headers) {
-        console.log(parseInt(block.file.size));
-        console.log(parseInt(uploader.options.chunkSize));
-        console.log(block);
+        console.log("uploadBeforeSend............")
         if (parseInt(block.file.size) <= parseInt(uploader.options.chunkSize)) {
             uploader.options.chunked = false;
-            console.log(false);
+            console.log("使用表单上传.........");
         } else {
             uploader.options.chunked = true;
             headers['Authorization'] = 'UpToken ' + token;
@@ -123,21 +131,36 @@ $(function() {
         if(parseInt(file.size) >= parseInt(uploader.options.chunkSize)) {
             console.log("ctx:" + ctx);
             b = ctx.join(",");
-            $.ajax({
-                type: 'POST',
-                url: host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
-                data: b,
-                contentType: "text/plain",
-                contentLength: b.length,
-                beforeSend: function (XMLHttpRequest) {
-                    XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
-                },
-                success: function(res){
-                    UploadComplete(file, res);
-                }
+            if(hash){
+                $.ajax({
+                    type: 'POST',
+                    url: host + '/mkfile/' + file.size,
+                    data: b,
+                    contentType: "text/plain",
+                    contentLength: b.length,
+                    beforeSend: function (XMLHttpRequest) {
+                        XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
+                    },
+                    success: function(res){
+                        UploadComplete(file, res);
+                    }
+                });
+            } else {
+                $.ajax({
+                    type: 'POST',
+                    url: host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
+                    data: b,
+                    contentType: "text/plain",
+                    contentLength: b.length,
+                    beforeSend: function (XMLHttpRequest) {
+                        XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
+                    },
+                    success: function(res){
+                        UploadComplete(file, res);
+                    }
+                });
+            }
 
-
-            });
         }
     });
 
