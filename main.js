@@ -15,6 +15,7 @@ $(function() {
 
 
     var uploader = WebUploader.create({
+        auto: true,
         swf: "Uploader.swf",
         server: host,
         pick: "#picker",
@@ -109,8 +110,9 @@ $(function() {
 
     uploader.on("uploadSuccess", function(file, res) {
         console.log("uploadSuccess............");
+        console.log(res);
         if(parseInt(file.size) <= parseInt(uploader.options.chunkSize)) {
-            UploadComplete(file);
+            UploadComplete(file,res);
             console.log(res);
         }
     });
