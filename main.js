@@ -30,6 +30,18 @@ $(function() {
             , allowMagnify: true
             , crop: true
         },
+        accept : [
+            {
+                title: 'Images',
+                extensions: 'gif,jpg,jpeg,bmp,png',
+                mimeTypes: 'image/*'
+            },
+            {
+                title: 'Videos',
+                extensions: 'mp4,mkv,avi',
+                mimeTypes: 'video/*'
+            }
+        ],
         compress: false,
         prepareNextFile: true,
         chunked: true,
