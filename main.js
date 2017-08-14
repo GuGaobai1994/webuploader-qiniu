@@ -13,6 +13,7 @@ $(function() {
     var domain = "http://orqjqg7zj.bkt.clouddn.com/";
     var hash = true;
 
+
     var uploader = WebUploader.create({
         auto: true,
         swf: "Uploader.swf",
@@ -65,27 +66,7 @@ $(function() {
 
 
     uploader.on("uploadStart", function(file){
-        $.ajax({
-            async:false,
-            type: 'get',
-            url: tokenUrl,
-            success: function (res) {
-                console.log(res);
-                token = res.uptoken;
-                console.log(token);
-                if(hash) {
-                    uploader.options.formData = {
-                        token : token,
-                    }
-                } else {
-                    uploader.options.formData = {
-                        token : token,
-                        key: file.name
-                    }
-                }
-
-            }
-        });
+        GetToken(tokenUrl, file);
     });
 
     uploader.on("uploadBeforeSend", function (block, data, headers) {
@@ -129,38 +110,7 @@ $(function() {
         console.log("uploadComplete............");
         console.log("file " + file);
         if(parseInt(file.size) >= parseInt(uploader.options.chunkSize)) {
-            console.log("ctx:" + ctx);
-            b = ctx.join(",");
-            if(hash){
-                $.ajax({
-                    type: 'POST',
-                    url: host + '/mkfile/' + file.size,
-                    data: b,
-                    contentType: "text/plain",
-                    contentLength: b.length,
-                    beforeSend: function (XMLHttpRequest) {
-                        XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
-                    },
-                    success: function(res){
-                        UploadComplete(file, res);
-                    }
-                });
-            } else {
-                $.ajax({
-                    type: 'POST',
-                    url: host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
-                    data: b,
-                    contentType: "text/plain",
-                    contentLength: b.length,
-                    beforeSend: function (XMLHttpRequest) {
-                        XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
-                    },
-                    success: function(res){
-                        UploadComplete(file, res);
-                    }
-                });
-            }
-
+            MakeFile(ctx, file, hash);
         }
     });
 
@@ -187,6 +137,62 @@ $(function() {
         $(this).parent().remove();	//从上传列表dom中删除
     });
 
+   function GetToken(tokenUrl, file) {
+        $.ajax({
+            async:false,
+            type: 'get',
+            url: tokenUrl,
+            success: function (res) {
+                console.log(res);
+                token = res.uptoken;
+                console.log(token);
+                if(hash) {
+                    uploader.options.formData = {
+                        token : token,
+                    }
+                } else {
+                    uploader.options.formData = {
+                        token : token,
+                        key: file.name
+                    }
+                }
+            }
+        });
+    }
+
+    function MakeFile(ctx, file, hash) {
+        console.log("ctx:" + ctx);
+        var b = ctx.join(",");
+        if(hash){
+            $.ajax({
+                type: 'POST',
+                url: host + '/mkfile/' + file.size,
+                data: b,
+                contentType: "text/plain",
+                contentLength: b.length,
+                beforeSend: function (XMLHttpRequest) {
+                    XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
+                },
+                success: function(res){
+                    UploadComplete(file, res);
+                }
+            });
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
+                data: b,
+                contentType: "text/plain",
+                contentLength: b.length,
+                beforeSend: function (XMLHttpRequest) {
+                    XMLHttpRequest.setRequestHeader("Authorization", 'UpToken ' + token);
+                },
+                success: function(res){
+                    UploadComplete(file, res);
+                }
+            });
+        }
+    }
 
     function UploadComplete(file,res) {
         console.log(file);
