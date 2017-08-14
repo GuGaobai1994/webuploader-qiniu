@@ -8,16 +8,34 @@
  */
 
 $(function() {
-    var host = "http://upload.qiniu.com";
-    var tokenUrl = "http://localhost:8083/uptoken" ;
-    var domain = "http://orqjqg7zj.bkt.clouddn.com/";
-    var hash = true;
 
+
+    var options = {
+        host : "http://upload.qiniu.com",
+        tokenUrl : "http://localhost:8083/uptoken",
+        domain : "http://orqjqg7zj.bkt.clouddn.com/",
+        mockToken : true,
+        mockTokenValue : "FMVCRs2-LO1ivRNi4l7mEZE6ZDvPv-519D12kZCO:ZXOlC4-SKwZfalWNIvXUNUZg1wA=:eyJzY29wZSI6InJ0Y3Rlc3QiLCJkZWFkbGluZSI6MjUwMjY5NjAxNH0=",
+        hash : true
+    }
+
+
+    WebUploader.Uploader.register({
+        "after-send-file": "afterSendFile"
+    }, {
+            afterSendFile: function(file){
+                console.log("uploadComplete............");
+                console.log("file " + file);
+                if(parseInt(file.size) >= parseInt(uploader.options.chunkSize)) {
+                    MakeFile(ctx, file, options.hash);
+                }
+        }
+    });
 
     var uploader = WebUploader.create({
         auto: true,
         swf: "Uploader.swf",
-        server: host,
+        server: options.host,
         pick: "#picker",
         resize: false,
         dnd: "#theList",
@@ -78,7 +96,14 @@ $(function() {
 
 
     uploader.on("uploadStart", function(file){
-        GetToken(tokenUrl, file);
+        if(!options.mockToken) {
+            GetToken(options.tokenUrl, file);
+        } else {
+            uploader.options.formData = {
+                token : options.mockTokenValue
+            }
+            token = options.mockTokenValue;
+        }
     });
 
     uploader.on("uploadBeforeSend", function (block, data, headers) {
@@ -90,7 +115,7 @@ $(function() {
             uploader.options.chunked = true;
             headers['Authorization'] = 'UpToken ' + token;
             headers['Content-Type'] = 'application/octet-stream';
-            block.transport.options.server = host + "/mkblk/" + (block.end - block.start);
+            block.transport.options.server = options.host + "/mkblk/" + (block.end - block.start);
             block.transport.options.sendAsBinary = true;
             block.transport.options.formData = false;
             console.log(true);
@@ -118,13 +143,13 @@ $(function() {
         }
     });
 
-    uploader.on("uploadComplete", function (file) {
+ /*   uploader.on("uploadComplete", function (file) {
         console.log("uploadComplete............");
         console.log("file " + file);
         if(parseInt(file.size) >= parseInt(uploader.options.chunkSize)) {
-            MakeFile(ctx, file, hash);
+            MakeFile(ctx, file, options.hash);
         }
-    });
+    }); */
 
 
     $("#theList").on("click", ".itemUpload", function () {
@@ -158,7 +183,7 @@ $(function() {
                 console.log(res);
                 token = res.uptoken;
                 console.log(token);
-                if(hash) {
+                if(options.hash) {
                     uploader.options.formData = {
                         token : token,
                     }
@@ -178,7 +203,7 @@ $(function() {
         if(hash){
             $.ajax({
                 type: 'POST',
-                url: host + '/mkfile/' + file.size,
+                url: options.host + '/mkfile/' + file.size,
                 data: b,
                 contentType: "text/plain",
                 contentLength: b.length,
@@ -192,7 +217,7 @@ $(function() {
         } else {
             $.ajax({
                 type: 'POST',
-                url: host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
+                url: options.host + '/mkfile/' + file.size + '/key/' + URLSafeBase64Encode(file.name),
                 data: b,
                 contentType: "text/plain",
                 contentLength: b.length,
@@ -215,8 +240,8 @@ $(function() {
         $(".itemStop").hide();
         $(".itemUpload").hide();
         $(".itemDel").hide();
-        $("#" + file.id + " .url").text(domain + res.key);
-        $("#url").attr("href",domain + res.key).text(domain + res.key);
+        $("#" + file.id + " .url").text(options.domain + res.key);
+        $("#url").attr("href",options.domain + res.key).text(options.domain + res.key);
     }
 
     function URLSafeBase64Decode(data){
