@@ -20,18 +20,6 @@ $(function() {
     }
 
 
-    WebUploader.Uploader.register({
-        "after-send-file": "afterSendFile"
-    }, {
-            afterSendFile: function(file){
-                console.log("uploadComplete............");
-                console.log("file " + file);
-                if(parseInt(file.size) >= parseInt(uploader.options.chunkSize)) {
-                    MakeFile(ctx, file, options.hash);
-                }
-        }
-    });
-
     var uploader = WebUploader.create({
         auto: true,
         swf: "Uploader.swf",
@@ -70,8 +58,8 @@ $(function() {
         duplicate: true
     });
 
-    var ctx = new Array();
     var token;
+    var m = new Map();
 
     uploader.on("fileQueued", function (file) {
 
@@ -91,6 +79,8 @@ $(function() {
             $img.attr("src", src);
         });
 
+        var ctx = new Array();
+        m.set(file.name, ctx);
 
     });
 
@@ -128,10 +118,9 @@ $(function() {
 
     uploader.on("uploadAccept", function (block, ret) {
         console.log("uploadAccept.............");
-        console.log("block: " + block);
-        console.log("ret: " + ret);
-        ctx[block.chunk] = ret.ctx;
-        console.log("ctx:" + ctx);
+        //ctx[block.chunk] = ret.ctx;
+        console.log("block.file.name:" + block.file.name);
+        m.get(block.file.name)[block.chunk] = ret.ctx;
     });
 
     uploader.on("uploadSuccess", function(file, res) {
@@ -140,7 +129,10 @@ $(function() {
         if(parseInt(file.size) <= parseInt(uploader.options.chunkSize)) {
             UploadComplete(file,res);
             console.log(res);
+        } else {
+            MakeFile(m.get(file.name), file, options.hash);
         }
+
     });
 
  /*   uploader.on("uploadComplete", function (file) {
